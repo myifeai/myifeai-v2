@@ -12,9 +12,8 @@ export function Confetti() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Store dimensions in variables to avoid null checks later
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
     const particles: Array<{
       x: number;
@@ -31,8 +30,8 @@ export function Confetti() {
 
     for (let i = 0; i < 100; i++) {
       particles.push({
-        x: canvasWidth / 2,
-        y: canvasHeight / 2,
+        x: canvas.width / 2,
+        y: canvas.height / 2,
         vx: (Math.random() - 0.5) * 20,
         vy: (Math.random() - 0.5) * 20 - 5,
         color: colors[Math.floor(Math.random() * colors.length)],
@@ -44,9 +43,11 @@ export function Confetti() {
 
     let animationId: number;
     
+    // Use non-null assertion operator (!) since we already checked ctx is not null
+    const context = ctx;
+    
     function animate() {
-      // Use stored dimensions instead of accessing canvas
-      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      context.clearRect(0, 0, canvas.width, canvas.height);
       
       particles.forEach((p, i) => {
         p.vy += 0.5;
@@ -54,14 +55,14 @@ export function Confetti() {
         p.y += p.vy;
         p.rotation += p.rotationSpeed;
 
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate((p.rotation * Math.PI) / 180);
-        ctx.fillStyle = p.color;
-        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-        ctx.restore();
+        context.save();
+        context.translate(p.x, p.y);
+        context.rotate((p.rotation * Math.PI) / 180);
+        context.fillStyle = p.color;
+        context.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+        context.restore();
 
-        if (p.y > canvasHeight) particles.splice(i, 1);
+        if (p.y > canvas.height) particles.splice(i, 1);
       });
 
       if (particles.length > 0) {
