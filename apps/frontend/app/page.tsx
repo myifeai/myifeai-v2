@@ -7,7 +7,6 @@ import { LifeWheel } from '@/components/dashboard/LifeWheel';
 import { TaskCard } from '@/components/tasks/TaskCard';
 import { AnimatedNumber } from '@/components/shared/AnimatedNumber';
 import { Confetti } from '@/components/shared/Confetti';
-import { Loader2, RefreshCw, Flame, Zap, TrendingUp } from 'lucide-react';
 
 export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null);
@@ -38,24 +37,16 @@ export default function Dashboard() {
 
       const [profileRes, planRes] = await Promise.all([
         fetch(`${BACKEND_URL}/api/profile`, {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch(`${BACKEND_URL}/api/daily-actions`, {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
 
       if (profileRes.ok && planRes.ok) {
-        const profileData = await profileRes.json();
-        const planData = await planRes.json();
-        setProfile(profileData);
-        setPlan(planData);
+        setProfile(await profileRes.json());
+        setPlan(await planRes.json());
       }
     } catch (error) {
       console.error('Fetch error:', error);
@@ -92,182 +83,111 @@ export default function Dashboard() {
     }
   };
 
-  if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
-      </div>
-    );
+  if (!isLoaded || loading) {
+    return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'white' }}>Loading...</div>;
   }
 
   if (!isSignedIn) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-12 max-w-md w-full"
-        >
-          <h1 className="text-4xl font-bold mb-4 text-gradient">MyLife OS</h1>
-          <p className="text-white/60 mb-8 text-lg">Your AI-powered life operating system</p>
-          <button 
-            onClick={() => window.location.href = '/sign-in'}
-            className="btn-primary w-full text-lg"
-          >
-            Get Started
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', textAlign: 'center', padding: '2rem' }}>
+        <h1 style={{ fontSize: '3rem', fontWeight: 'bold', marginBottom: '1rem', background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>MyLife OS</h1>
+        <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '2rem' }}>Your AI-powered life operating system</p>
+        <button onClick={() => window.location.href = '/sign-in'} className="btn-primary">Get Started</button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
+    <div style={{ minHeight: '100vh', padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
       {showConfetti && <Confetti />}
       
       {/* Header */}
-      <motion.header 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"
-      >
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gradient">MyLife OS</h1>
-          <p className="text-white/50 text-sm mt-1">v2.0 • AI-Powered Life Optimization</p>
+          <h1 className="text-gradient" style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>MyLife OS</h1>
+          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.875rem' }}>v2.0 • AI-Powered Life Optimization</p>
         </div>
         
-        <div className="flex items-center gap-4 glass-card px-4 py-2">
-          <div className="flex items-center gap-2 text-amber-400">
-            <Flame className="w-5 h-5" />
-            <span className="font-bold">{profile?.streak_days || 0} day streak</span>
-          </div>
-          <div className="w-px h-6 bg-white/10" />
-          <span className="text-white/60 text-sm truncate max-w-[200px]">
-            {user?.emailAddresses[0]?.emailAddress}
-          </span>
+        <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 1.5rem' }}>
+          <span style={{ color: '#fbbf24', fontWeight: '600' }}>🔥 {profile?.streak_days || 0} day streak</span>
+          <span style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.1)' }}></span>
+          <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.875rem' }}>{user?.emailAddresses[0]?.emailAddress}</span>
         </div>
-      </motion.header>
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column - Stats */}
-        <div className="lg:col-span-4 space-y-6">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+        {/* Left Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* XP Card */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="glass-card p-6"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 rounded-xl bg-violet-500/20">
-                <Zap className="w-6 h-6 text-violet-400" />
+          <div className="glass-card" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+              <div style={{ padding: '0.75rem', borderRadius: '0.75rem', background: 'rgba(139, 92, 246, 0.2)' }}>
+                <span style={{ fontSize: '1.5rem' }}>⚡</span>
               </div>
               <div>
-                <div className="text-sm text-white/50 uppercase tracking-wider">Total XP</div>
-                <div className="text-4xl font-black text-white">
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total XP</div>
+                <div style={{ fontSize: '2.5rem', fontWeight: '800', color: 'white' }}>
                   <AnimatedNumber value={profile?.xp_points || 0} />
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-violet-400 font-bold text-lg">{profile?.rank || 'Novice'}</span>
-              <span className="text-white/40 text-sm">{Math.round(profile?.nextRankProgress || 0)}% to next rank</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ color: '#8b5cf6', fontWeight: '700' }}>{profile?.rank || 'Novice'}</span>
+              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.875rem' }}>{Math.round(profile?.nextRankProgress || 0)}%</span>
             </div>
             
-            <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
+            <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '9999px', overflow: 'hidden' }}>
               <motion.div 
-                className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                style={{ height: '100%', background: 'linear-gradient(90deg, #8b5cf6, #ec4899)' }}
                 initial={{ width: 0 }}
                 animate={{ width: `${profile?.nextRankProgress || 0}%` }}
-                transition={{ duration: 1, delay: 0.5 }}
               />
             </div>
-          </motion.div>
+          </div>
 
           {/* Life Wheel */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="glass-card p-6 flex flex-col items-center"
-          >
-            <h3 className="text-lg font-semibold mb-4 text-white/80">Life Balance</h3>
+          <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', color: 'rgba(255,255,255,0.8)' }}>Life Balance</h3>
             <LifeWheel scores={profile?.scores || []} size={260} />
-          </motion.div>
+          </div>
         </div>
 
         {/* Center - Tasks */}
-        <div className="lg:col-span-5">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mb-6"
-          >
-            <h2 className="text-2xl font-bold mb-2">Today&apos;s Objectives</h2>
-            <p className="text-white/50">Complete tasks to earn XP and maintain your streak</p>
-          </motion.div>
+        <div>
+          <h2 style={{ fontSize: '1.875rem', fontWeight: '700', marginBottom: '0.5rem' }}>Today&apos;s Objectives</h2>
+          <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '1.5rem' }}>Complete tasks to earn XP and maintain your streak</p>
 
-          <div className="space-y-4">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <AnimatePresence mode="popLayout">
               {plan?.tasks?.map((task: any, index: number) => (
                 <TaskCard 
-                  key={`${task.domain}-${index}`}
+                  key={index}
                   task={task}
                   index={index}
                   onComplete={() => handleComplete(task)}
                 />
               ))}
             </AnimatePresence>
-            
-            {!plan?.tasks?.length && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="glass-card p-8 text-center text-white/50"
-              >
-                <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No tasks available. Try regenerating your plan!</p>
-              </motion.div>
-            )}
           </div>
         </div>
 
         {/* Right - AI Coach */}
-        <div className="lg:col-span-3">
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-            className="glass-card p-6 sticky top-6"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-2xl">🤖</span>
-              <span className="text-violet-400 font-bold">AI COACH</span>
+        <div>
+          <div className="glass-card" style={{ padding: '1.5rem', position: 'sticky', top: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <span style={{ fontSize: '1.25rem' }}>🤖</span>
+              <span style={{ color: '#8b5cf6', fontWeight: '700' }}>AI COACH</span>
             </div>
             
-            <p className="text-white/80 leading-relaxed mb-6 min-h-[100px]">
+            <p style={{ color: 'rgba(255,255,255,0.8)', lineHeight: '1.6', marginBottom: '1.5rem', minHeight: '80px' }}>
               {plan?.briefing || 'Generating your personalized plan...'}
             </p>
             
-            <button 
-              onClick={fetchData}
-              disabled={loading}
-              className="btn-secondary w-full flex items-center justify-center gap-2"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              Regenerate Plan
+            <button onClick={fetchData} className="btn-secondary" style={{ width: '100%' }}>
+              🔄 Regenerate Plan
             </button>
-          </motion.div>
+          </div>
         </div>
       </div>
     </div>
