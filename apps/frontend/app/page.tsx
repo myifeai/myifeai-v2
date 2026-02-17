@@ -22,71 +22,117 @@ export default function Dashboard() {
   }, []);
 
   const fetchData = async () => {
-    const token = await getToken();
-    const [profileRes, planRes] = await Promise.all([
-      fetch(`${BACKEND_URL}/api/profile`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`${BACKEND_URL}/api/daily-actions`, { headers: { Authorization: `Bearer ${token}` } })
-    ]);
-    setProfile(await profileRes.json());
-    setPlan(await planRes.json());
-    setLoading(false);
+    try {
+      const token = await getToken();
+      const [profileRes, planRes] = await Promise.all([
+        fetch(`${BACKEND_URL}/api/profile`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${BACKEND_URL}/api/daily-actions`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+      setProfile(await profileRes.json());
+      setPlan(await planRes.json());
+    } catch (error) {
+      console.error('Fetch error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleComplete = async (task: any) => {
-    const token = await getToken();
-    await fetch(`${BACKEND_URL}/api/complete-task`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ domain: task.domain, xpPoints: task.xp, taskText: task.task })
-    });
-    setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 3000);
-    fetchData();
+    try {
+      const token = await getToken();
+      await fetch(`${BACKEND_URL}/api/complete-task`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          domain: task.domain,
+          xpPoints: task.xp,
+          taskText: task.task
+        })
+      });
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+      fetchData();
+    } catch (error) {
+      console.error('Completion error:', error);
+    }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  if (loading) return <div className="flex items-center justify-center h-screen text-white">Loading...</div>;
 
   return (
-    <div className="min-h-screen p-6 max-w-7xl mx-auto">
+    <div className="min-h-screen p-6 max-w-7xl mx-auto bg-slate-950">
       {showConfetti && <Confetti />}
       
       <header className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">MyLife OS v2</h1>
-        <span className="text-amber-400">🔥 {profile?.streak_days || 0} day streak</span>
+        <h1 className="text-3xl font-bold text-white">MyLife OS v2</h1>
+        <span className="text-amber-400 font-bold">🔥 {profile?.streak_days || 0} day streak</span>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-4 space-y-6">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl"
+          >
             <div className="text-sm text-white/60 uppercase mb-2">Total XP</div>
-            <div className="text-5xl font-black mb-4"><AnimatedNumber value={profile?.xp_points || 0} /></div>
+            <div className="text-5xl font-black text-white mb-4">
+              <AnimatedNumber value={profile?.xp_points || 0} />
+            </div>
             <div className="text-violet-400 font-bold mb-2">{profile?.rank || 'Novice'}</div>
             <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-              <motion.div className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500" initial={{ width: 0 }} animate={{ width: '50%' }} />
+              <motion.div 
+                className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500" 
+                initial={{ width: 0 }} 
+                animate={{ width: '50%' }} 
+              />
             </div>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="glass-card p-6 flex justify-center">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 flex justify-center shadow-xl"
+          >
             <LifeWheel scores={profile?.scores || []} size={280} />
           </motion.div>
         </div>
 
         <div className="lg:col-span-5">
-          <h2 className="text-2xl font-bold mb-6">Today's Objectives</h2>
+          <h2 className="text-2xl font-bold text-white mb-6">Today&apos;s Objectives</h2>
           <div className="space-y-4">
             <AnimatePresence mode="popLayout">
               {plan?.tasks?.map((task: any, index: number) => (
-                <TaskCard key={index} task={task} index={index} onComplete={() => handleComplete(task)} />
+                <TaskCard 
+                  key={index} 
+                  task={task} 
+                  index={index} 
+                  onComplete={() => handleComplete(task)} 
+                />
               ))}
             </AnimatePresence>
           </div>
         </div>
 
         <div className="lg:col-span-3">
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="glass-card p-6 sticky top-6">
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }} 
+            animate={{ opacity: 1, x: 0 }} 
+            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 sticky top-6 shadow-xl"
+          >
             <div className="text-sm text-violet-400 font-bold mb-2">🤖 AI COACH</div>
             <p className="text-white/80 mb-4">{plan?.briefing || 'Loading...'}</p>
-            <button onClick={fetchData} className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-violet-400 hover:text-white transition-colors">
+            <button 
+              onClick={fetchData} 
+              className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-violet-400 hover:text-white transition-colors"
+            >
               🔄 Regenerate
             </button>
           </motion.div>

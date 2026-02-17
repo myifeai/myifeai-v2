@@ -9,7 +9,7 @@
     "type-check": "turbo run type-check"
   },
   "devDependencies": {
-    "turbo": "^1.11.0"
+    "turbo": "^2.0.0"
   },
   "workspaces": ["apps/*"]
 }
