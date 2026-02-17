@@ -1,4 +1,3 @@
-// apps/backend/lib/ai-engine.ts
 import Groq from 'groq-sdk';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
