@@ -29,6 +29,7 @@ app.get('/api/daily-actions', async (req, res) => {
     const plan = await generateDailyPlan(userId);
     res.json({ ...plan, generatedAt: new Date().toISOString() });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'AI_GENERATION_FAILED' });
   }
 });
@@ -46,19 +47,26 @@ app.post('/api/complete-task', async (req, res) => {
   const parseResult = CompleteTaskSchema.safeParse(req.body);
   if (!parseResult.success) return res.status(400).json({ error: 'VALIDATION_ERROR' });
 
-  const { completeTask } = await import('../lib/gamification.js');
-  const result = await completeTask(userId, parseResult.data.domain, parseResult.data.xpPoints, parseResult.data.taskText);
-  
-  res.json({ success: true, ...result });
+  try {
+    const { completeTask } = await import('../lib/gamification.js');
+    const result = await completeTask(userId, parseResult.data.domain, parseResult.data.xpPoints, parseResult.data.taskText);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    res.status(500).json({ error: 'COMPLETION_FAILED' });
+  }
 });
 
 app.get('/api/profile', async (req, res) => {
   const { userId } = getAuth(req);
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { getProfile } = await import('../lib/gamification.js');
-  const profile = await getProfile(userId);
-  res.json(profile);
+  try {
+    const { getProfile } = await import('../lib/gamification.js');
+    const profile = await getProfile(userId);
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ error: 'PROFILE_FETCH_FAILED' });
+  }
 });
 
 export default app;

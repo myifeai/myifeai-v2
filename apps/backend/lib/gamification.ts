@@ -3,7 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
 export async function completeTask(userId: string, domain: string, baseXp: number, taskText: string) {
-  const { data: profile } = await supabase.from('profiles').select('xp_points, streak_days, last_active').eq('id', userId).single();
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('xp_points, streak_days, last_active')
+    .eq('id', userId)
+    .single();
   
   const lastActive = profile?.last_active ? new Date(profile.last_active) : null;
   const daysSince = lastActive ? Math.floor((Date.now() - lastActive.getTime()) / (1000 * 60 * 60 * 24)) : 999;
@@ -16,9 +20,23 @@ export async function completeTask(userId: string, domain: string, baseXp: numbe
   const finalXp = Math.floor(baseXp * multiplier);
 
   await Promise.all([
-    supabase.from('task_logs').insert({ user_id: userId, domain, task_text: taskText, xp_earned: finalXp }),
-    supabase.rpc('increment_xp', { user_id_input: userId, xp_to_add: finalXp, streak_input: newStreak, last_active_input: new Date().toISOString() }),
-    supabase.rpc('increment_domain_score', { user_id_input: userId, domain_input: domain, score_to_add: 10 })
+    supabase.from('task_logs').insert({ 
+      user_id: userId, 
+      domain, 
+      task_text: taskText, 
+      xp_earned: finalXp 
+    }),
+    supabase.rpc('increment_xp', { 
+      user_id_input: userId, 
+      xp_to_add: finalXp, 
+      streak_input: newStreak, 
+      last_active_input: new Date().toISOString() 
+    }),
+    supabase.rpc('increment_domain_score', { 
+      user_id_input: userId, 
+      domain_input: domain, 
+      score_to_add: 10 
+    })
   ]);
 
   return { xpGained: finalXp, streak: newStreak, multiplier };

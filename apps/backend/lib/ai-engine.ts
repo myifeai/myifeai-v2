@@ -15,10 +15,9 @@ const DailyPlanSchema = z.object({
 });
 
 export async function generateDailyPlan(userId: string) {
-  const [{ data: scores }, { data: history }, { data: profile }] = await Promise.all([
+  const [{ data: scores }, { data: history }] = await Promise.all([
     supabase.from('life_scores').select('domain, score').eq('user_id', userId),
-    supabase.from('task_logs').select('task_text, domain').eq('user_id', userId).order('completed_at', { ascending: false }).limit(10),
-    supabase.from('profiles').select('xp_points').eq('id', userId).single()
+    supabase.from('task_logs').select('task_text, domain').eq('user_id', userId).order('completed_at', { ascending: false }).limit(10)
   ]);
 
   const scoreSummary = scores?.map(s => `${s.domain}: ${s.score}`).join(', ') || 'No data';
@@ -26,8 +25,11 @@ export async function generateDailyPlan(userId: string) {
 
   const completion = await groq.chat.completions.create({
     messages: [
-      { role: 'system', content: `You are MYFE AI. User data: ${scoreSummary}. History: ${historySummary}. Rules: 3 different domains, prioritize lowest scores, 15-45 min tasks.` },
-      { role: 'user', content: 'Generate today\'s 3-domain tactical plan as JSON with briefing and tasks array.' }
+      { 
+        role: 'system', 
+        content: `You are MYFE AI. User data: ${scoreSummary}. History: ${historySummary}. Rules: 3 different domains, prioritize lowest scores, 15-45 min tasks. Output JSON with briefing and tasks array.` 
+      },
+      { role: 'user', content: 'Generate plan' }
     ],
     model: 'llama-3.3-70b-versatile',
     response_format: { type: 'json_object' },
