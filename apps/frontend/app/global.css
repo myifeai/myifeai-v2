@@ -2,16 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 45, 27, 46;
+  --background-end-rgb: 15, 10, 21;
+}
+
 body {
-  background: radial-gradient(ellipse at top left, #2d1b2e 0%, #1a1625 50%, #0f0a15 100%);
+  color: rgb(var(--foreground-rgb));
+  background: radial-gradient(
+    ellipse at top left,
+    rgb(var(--background-start-rgb)) 0%,
+    #1a1625 50%,
+    rgb(var(--background-end-rgb)) 100%
+  );
   background-attachment: fixed;
-  color: white;
   min-height: 100vh;
 }
 
 @layer components {
   .glass-card {
     @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.37);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+  }
+
+  .glass-card-hover {
+    @apply hover:bg-white/10 transition-all duration-300;
+  }
+
+  .btn-primary {
+    @apply bg-white text-black font-bold px-6 py-3 rounded-xl 
+           hover:bg-violet-400 hover:text-white transition-colors;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
   }
 }
