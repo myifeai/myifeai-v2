@@ -10,10 +10,11 @@ export function Confetti() {
     if (!canvas) return;
     
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;  // Fixed: Added null check
+    if (!ctx) return;
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Store dimensions in variables to avoid null checks later
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
 
     const particles: Array<{
       x: number;
@@ -30,8 +31,8 @@ export function Confetti() {
 
     for (let i = 0; i < 100; i++) {
       particles.push({
-        x: canvas.width / 2,
-        y: canvas.height / 2,
+        x: canvasWidth / 2,
+        y: canvasHeight / 2,
         vx: (Math.random() - 0.5) * 20,
         vy: (Math.random() - 0.5) * 20 - 5,
         color: colors[Math.floor(Math.random() * colors.length)],
@@ -44,9 +45,8 @@ export function Confetti() {
     let animationId: number;
     
     function animate() {
-      if (!ctx) return;  // Fixed: Added null check
-      
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Use stored dimensions instead of accessing canvas
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
       
       particles.forEach((p, i) => {
         p.vy += 0.5;
@@ -61,7 +61,7 @@ export function Confetti() {
         ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
         ctx.restore();
 
-        if (p.y > canvas.height) particles.splice(i, 1);
+        if (p.y > canvasHeight) particles.splice(i, 1);
       });
 
       if (particles.length > 0) {
