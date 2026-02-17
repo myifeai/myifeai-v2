@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
 import { LifeWheel } from '@/components/dashboard/LifeWheel';
 import { TaskCard } from '@/components/tasks/TaskCard';
 import { AnimatedNumber } from '@/components/shared/AnimatedNumber';
@@ -13,27 +13,65 @@ export default function Dashboard() {
   const [plan, setPlan] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
-  const { getToken } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
   useEffect(() => {
+    // Wait for Clerk to load
+    if (!isLoaded) return;
+    
+    // If not signed in, redirect or show sign-in
+    if (!isSignedIn) {
+      setLoading(false);
+      return;
+    }
+
     fetchData();
-  }, []);
+  }, [isLoaded, isSignedIn]);
 
   const fetchData = async () => {
     try {
       const token = await getToken();
+      
+      if (!token) {
+        console.error('No token available');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Fetching with token...'); // Debug log
+
       const [profileRes, planRes] = await Promise.all([
         fetch(`${BACKEND_URL}/api/profile`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         }),
         fetch(`${BACKEND_URL}/api/daily-actions`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         })
       ]);
-      setProfile(await profileRes.json());
-      setPlan(await planRes.json());
+
+      // Check for errors
+      if (!profileRes.ok) {
+        console.error('Profile fetch failed:', profileRes.status, await profileRes.text());
+      }
+      if (!planRes.ok) {
+        console.error('Plan fetch failed:', planRes.status, await planRes.text());
+      }
+
+      if (profileRes.ok && planRes.ok) {
+        const profileData = await profileRes.json();
+        const planData = await planRes.json();
+        setProfile(profileData);
+        setPlan(planData);
+      }
     } catch (error) {
       console.error('Fetch error:', error);
     } finally {
@@ -44,11 +82,13 @@ export default function Dashboard() {
   const handleComplete = async (task: any) => {
     try {
       const token = await getToken();
-      await fetch(`${BACKEND_URL}/api/complete-task`, {
+      if (!token) return;
+
+      const res = await fetch(`${BACKEND_URL}/api/complete-task`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           domain: task.domain,
@@ -56,15 +96,41 @@ export default function Dashboard() {
           taskText: task.task
         })
       });
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 3000);
-      fetchData();
+
+      if (res.ok) {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 3000);
+        fetchData();
+      } else {
+        console.error('Complete failed:', res.status);
+      }
     } catch (error) {
       console.error('Completion error:', error);
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-screen text-white">Loading...</div>;
+  // Show loading while Clerk initializes
+  if (!isLoaded) {
+    return <div className="flex items-center justify-center h-screen text-white">Loading...</div>;
+  }
+
+  // Show sign-in prompt if not authenticated
+  if (!isSignedIn) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen text-white">
+        <h1 className="text-3xl font-bold mb-4">Welcome to MyLife OS</h1>
+        <p className="mb-4">Please sign in to continue</p>
+        <button 
+          onClick={() => window.location.href = '/sign-in'}
+          className="px-6 py-3 bg-violet-500 rounded-lg font-bold"
+        >
+          Sign In
+        </button>
+      </div>
+    );
+  }
+
+  if (loading) return <div className="flex items-center justify-center h-screen text-white">Loading your data...</div>;
 
   return (
     <div className="min-h-screen p-6 max-w-7xl mx-auto bg-slate-950">
@@ -72,7 +138,10 @@ export default function Dashboard() {
       
       <header className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-white">MyLife OS v2</h1>
-        <span className="text-amber-400 font-bold">🔥 {profile?.streak_days || 0} day streak</span>
+        <div className="flex items-center gap-4">
+          <span className="text-amber-400">🔥 {profile?.streak_days || 0} day streak</span>
+          <span className="text-white/60">{user?.emailAddresses[0]?.emailAddress}</span>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -91,7 +160,7 @@ export default function Dashboard() {
               <motion.div 
                 className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500" 
                 initial={{ width: 0 }} 
-                animate={{ width: '50%' }} 
+                animate={{ width: `${profile?.nextRankProgress || 0}%` }} 
               />
             </div>
           </motion.div>
@@ -118,6 +187,9 @@ export default function Dashboard() {
                 />
               ))}
             </AnimatePresence>
+            {!plan?.tasks?.length && (
+              <div className="text-white/50 text-center py-8">No tasks available. Try regenerating!</div>
+            )}
           </div>
         </div>
 
@@ -128,7 +200,7 @@ export default function Dashboard() {
             className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 sticky top-6 shadow-xl"
           >
             <div className="text-sm text-violet-400 font-bold mb-2">🤖 AI COACH</div>
-            <p className="text-white/80 mb-4">{plan?.briefing || 'Loading...'}</p>
+            <p className="text-white/80 mb-4">{plan?.briefing || 'Loading your personalized plan...'}</p>
             <button 
               onClick={fetchData} 
               className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-violet-400 hover:text-white transition-colors"
