@@ -5,47 +5,64 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+async function ensureProfile(userId: string) {
+  // Try to get existing profile
+  const { data: existing, error: fetchError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle(); // Use maybeSingle instead of single
+
+  if (existing) {
+    return existing;
+  }
+
+  // Profile doesn't exist, create it
+  console.log('Creating new profile for:', userId);
+  
+  const newProfile = {
+    id: userId,
+    full_name: 'New User',
+    xp_points: 0,
+    streak_days: 0,
+    last_active: new Date().toISOString(),
+    created_at: new Date().toISOString()
+  };
+
+  const { error: insertError } = await supabase
+    .from('profiles')
+    .insert(newProfile);
+
+  if (insertError) {
+    console.error('Profile insert error:', insertError);
+    throw new Error(`Failed to create profile: ${insertError.message}`);
+  }
+
+  // Initialize life scores
+  const domains = ['Health', 'Wealth', 'Career', 'Relationships', 'Balance'];
+  const scores = domains.map(domain => ({
+    user_id: userId,
+    domain,
+    score: 0
+  }));
+
+  const { error: scoresError } = await supabase
+    .from('life_scores')
+    .insert(scores);
+
+  if (scoresError) {
+    console.error('Scores insert error:', scoresError);
+  }
+
+  return newProfile;
+}
+
 export async function getProfile(userId: string) {
   try {
-    // Try to get existing profile
-    let { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    // Ensure profile exists
+    const profile = await ensureProfile(userId);
 
-    // If no profile found, create one
-    if (!profile || profileError?.code === 'PGRST116') {
-      console.log('Profile not found, creating new profile for:', userId);
-      
-      const { data: newProfile, error: createError } = await supabase
-        .from('profiles')
-        .insert({
-          id: userId,
-          full_name: 'New User',
-          xp_points: 0,
-          streak_days: 0,
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        throw new Error(`Failed to create profile: ${createError.message}`);
-      }
-
-      profile = newProfile;
-
-      // Initialize life scores
-      const domains = ['Health', 'Wealth', 'Career', 'Relationships', 'Balance'];
-      await supabase.from('life_scores').insert(
-        domains.map(domain => ({ user_id: userId, domain, score: 0 }))
-      );
-    } else if (profileError) {
-      throw new Error(`Profile fetch failed: ${profileError.message}`);
-    }
-
-    // Get scores
+    // Get scores separately
     const { data: scores, error: scoresError } = await supabase
       .from('life_scores')
       .select('*')
@@ -55,7 +72,7 @@ export async function getProfile(userId: string) {
       console.error('Scores fetch error:', scoresError);
     }
 
-    const xp = profile?.xp_points || 0;
+    const xp = profile.xp_points || 0;
     
     return {
       ...profile,
@@ -99,8 +116,8 @@ export async function completeTask(
   taskText: string
 ) {
   try {
-    // Ensure profile exists first
-    await getProfile(userId);
+    // Ensure profile exists
+    await ensureProfile(userId);
     
     const now = new Date().toISOString();
     
