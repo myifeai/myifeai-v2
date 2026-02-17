@@ -12,8 +12,11 @@ export function Confetti() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Store canvas and dimensions locally after null checks
+    const canvasEl = canvas;
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    const context = ctx;
 
     const particles: Array<{
       x: number;
@@ -30,8 +33,8 @@ export function Confetti() {
 
     for (let i = 0; i < 100; i++) {
       particles.push({
-        x: canvas.width / 2,
-        y: canvas.height / 2,
+        x: canvasWidth / 2,
+        y: canvasHeight / 2,
         vx: (Math.random() - 0.5) * 20,
         vy: (Math.random() - 0.5) * 20 - 5,
         color: colors[Math.floor(Math.random() * colors.length)],
@@ -43,11 +46,8 @@ export function Confetti() {
 
     let animationId: number;
     
-    // Use non-null assertion operator (!) since we already checked ctx is not null
-    const context = ctx;
-    
     function animate() {
-      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.clearRect(0, 0, canvasWidth, canvasHeight);
       
       particles.forEach((p, i) => {
         p.vy += 0.5;
@@ -62,7 +62,7 @@ export function Confetti() {
         context.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
         context.restore();
 
-        if (p.y > canvas.height) particles.splice(i, 1);
+        if (p.y > canvasHeight) particles.splice(i, 1);
       });
 
       if (particles.length > 0) {
